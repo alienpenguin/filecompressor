@@ -1,2 +1,2 @@
 # filecompressor
-A simple c++ wrapper around minz.c
+A simple c++ (minimal Qt) wrapper around minz.c
