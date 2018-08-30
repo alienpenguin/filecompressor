@@ -1,0 +1,8 @@
+*.o
+*.qmake.stash
+build-example_compress*
+example/Makefile
+example/example_compress
+example/*.pro.user
+example/*.gz
+example/*.zip
