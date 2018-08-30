@@ -5,7 +5,7 @@
  ********************************************************************************/
 
 #include "NrFileCompressor.h"
-#include "Zip/miniz.h"
+#include "miniz.h"
 
 #include <QDebug>
 #include <QFile>
