@@ -27,15 +27,35 @@
 
 NrFileCompressor::NrFileCompressor()
 {
-
+    /* empty ctor */
 }
 
 
-static const char *s_pComment = "Zipped with NrFileCompressor!";
+/*!
+ * \brief NrFileCompressor::fileCompress the basic function to be called to compress a file
+ * \param i_fileName the full path of the file to be compresses
+ * \param i_algo the type of compression to be used, either GZIP or ZIP
+ * \param i_level the compression level (0=none(faster) .. 9=max (slower))
+ * \return 0 if successful, a negative error code otherwise
+ */
+int NrFileCompressor::fileCompress(QString const& i_fileName, NrFileCompressor::compressedFileFormatEnum i_algo, int)
+{
+    if (i_algo == NrFileCompressor::GZIP_FILE) {
+        return compressGzipFile(i_fileName);
+    } else {
+        return compressZipFile(i_fileName);
+    }
+}
+
+
+/*******************
+ *     ZIP PART    *
+ * *****************/
 
 int NrFileCompressor::compressZipFile(const QString &filename)
 {
     std::cout << "Compressing (ZIP) file " << filename.toStdString() << std::endl;
+    const char *s_pComment = "Zipped with NrFileCompressor!";
 
     QString destfilename = filename + ".zip";
 
@@ -74,6 +94,10 @@ int NrFileCompressor::compressZipFile(const QString &filename)
     return 0;
 }
 
+
+/*********************
+ *     gZIP PART     *
+ * *******************/
 
 
 quint8 NrFileCompressor::getByte(quint32 var, quint8 bytenum)
@@ -181,8 +205,15 @@ int NrFileCompressor::compressGzipFile(const QString &filename)
     QFile fin(filename);
     QFile fout(filename + ".gz");
 
-    fin.open(QIODevice::ReadOnly);
-    fout.open(QIODevice::WriteOnly);
+    bool b = true;
+    b &= fin.open(QIODevice::ReadOnly);
+    b &= fout.open(QIODevice::WriteOnly);
+
+    if(!b) {
+        fin.close();
+        fout.close();
+        return NrFileCompressor::E_FILE_NOT_OPEN;
+    }
 
     //write the GZip file header
     QFileInfo finfo(fin);
@@ -196,7 +227,7 @@ int NrFileCompressor::compressGzipFile(const QString &filename)
     if (deflateInit2(&stream, level, MZ_DEFLATED, -MZ_DEFAULT_WINDOW_BITS, 9, MZ_DEFAULT_STRATEGY) != Z_OK)
     {
         std::cerr << "deflateInit2() failed!" << std::endl;
-        return EXIT_FAILURE;
+        return NrFileCompressor::E_MINIZ_ERROR;
     }
 
     //init the crc for uncompressed data
@@ -214,7 +245,7 @@ int NrFileCompressor::compressGzipFile(const QString &filename)
           if (fin.read((char*)s_inbuf, n) != n)
           {
             std::cerr << "Failed reading from input file!" << std::endl;
-            return EXIT_FAILURE;
+            return NrFileCompressor::E_MINIZ_ERROR;
           }
 
           //update the crc
@@ -236,7 +267,7 @@ int NrFileCompressor::compressGzipFile(const QString &filename)
           if (fout.write((char*)s_outbuf, n) != n)
           {
             std::cerr << "Failed writing to output file!" << std::endl;
-            return EXIT_FAILURE;
+            return NrFileCompressor::E_MINIZ_ERROR;
           }
           stream.next_out = s_outbuf;
           stream.avail_out = BUF_SIZE;
@@ -247,14 +278,14 @@ int NrFileCompressor::compressGzipFile(const QString &filename)
         else if (status != Z_OK)
         {
             std::cerr << "deflate() failed with status: " << status << std::endl;
-            return EXIT_FAILURE;
+            return NrFileCompressor::E_MINIZ_ERROR;
         }
     }
 
     if (deflateEnd(&stream) != Z_OK)
     {
         std::cerr << "deflateEnd() failed!" << std::endl;
-        return EXIT_FAILURE;
+        return NrFileCompressor::E_MINIZ_ERROR;
     }
 
     //This is a fast modulo to power-of-2 numbers
