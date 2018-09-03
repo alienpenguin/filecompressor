@@ -25,6 +25,9 @@
 #endif
 
 
+#define GZIP_EXT ".gz"
+#define ZIP_EXT ".zip"
+
 NrFileCompressor::NrFileCompressor()
 {
     /* empty ctor */
@@ -48,6 +51,16 @@ int NrFileCompressor::fileCompress(QString const& i_fileName, NrFileCompressor::
 }
 
 
+QString
+NrFileCompressor::getCompressedFilename(const QString &i_fileName, NrFileCompressor::compressedFileFormatEnum i_algo)
+{
+    if (i_algo == NrFileCompressor::GZIP_FILE) {
+        return i_fileName + GZIP_EXT;
+    } else {
+        return i_fileName + ZIP_EXT;
+    }
+}
+
 /*******************
  *     ZIP PART    *
  * *****************/
@@ -57,7 +70,7 @@ int NrFileCompressor::compressZipFile(const QString &filename)
     std::cout << "Compressing (ZIP) file " << filename.toStdString() << std::endl;
     const char *s_pComment = "Zipped with NrFileCompressor!";
 
-    QString destfilename = filename + ".zip";
+    QString destfilename = filename + ZIP_EXT;
 
     mz_zip_archive zip_archive;
 
@@ -203,7 +216,7 @@ int NrFileCompressor::compressGzipFile(const QString &filename)
     stream.avail_out = BUF_SIZE;
 
     QFile fin(filename);
-    QFile fout(filename + ".gz");
+    QFile fout(filename + GZIP_EXT);
 
     bool b = true;
     b &= fin.open(QIODevice::ReadOnly);
