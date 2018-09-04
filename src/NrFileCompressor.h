@@ -16,8 +16,9 @@ class NrFileCompressor
 public:
     enum compressedFileFormatEnum
     {
-        GZIP_FILE,
-        ZIP_FILE
+        NO_COMPRESSION,
+        GZIP_ARCHIVE,
+        ZIP_ARCHIVE
     };
 
     enum CompressErrorType {
@@ -33,9 +34,9 @@ private:
 
 public:
     NrFileCompressor();
-    static int fileCompress(const QString &filename, NrFileCompressor::compressedFileFormatEnum algo, int level);
-    static int compressZipFile(const QString &filename);
-    static int compressGzipFile(const QString &filename);
+    static int fileCompress(const QString &filename, NrFileCompressor::compressedFileFormatEnum algo, int lev=6); //Default compression level
+    static int compressZipFile(const QString &filename, int level);
+    static int compressGzipFile(const QString &filename, int level);
     static QString getCompressedFilename(const QString &filename, NrFileCompressor::compressedFileFormatEnum algo);
 
 };

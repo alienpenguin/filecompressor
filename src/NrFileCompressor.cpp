@@ -41,12 +41,12 @@ NrFileCompressor::NrFileCompressor()
  * \param i_level the compression level (0=none(faster) .. 9=max (slower))
  * \return 0 if successful, a negative error code otherwise
  */
-int NrFileCompressor::fileCompress(QString const& i_fileName, NrFileCompressor::compressedFileFormatEnum i_algo, int)
+int NrFileCompressor::fileCompress(QString const& i_fileName, NrFileCompressor::compressedFileFormatEnum i_algo, int i_lev)
 {
-    if (i_algo == NrFileCompressor::GZIP_FILE) {
-        return compressGzipFile(i_fileName);
+    if (i_algo == NrFileCompressor::GZIP_ARCHIVE) {
+        return compressGzipFile(i_fileName, i_lev);
     } else {
-        return compressZipFile(i_fileName);
+        return compressZipFile(i_fileName, i_lev);
     }
 }
 
@@ -54,7 +54,7 @@ int NrFileCompressor::fileCompress(QString const& i_fileName, NrFileCompressor::
 QString
 NrFileCompressor::getCompressedFilename(const QString &i_fileName, NrFileCompressor::compressedFileFormatEnum i_algo)
 {
-    if (i_algo == NrFileCompressor::GZIP_FILE) {
+    if (i_algo == NrFileCompressor::GZIP_ARCHIVE) {
         return i_fileName + GZIP_EXT;
     } else {
         return i_fileName + ZIP_EXT;
@@ -65,7 +65,7 @@ NrFileCompressor::getCompressedFilename(const QString &i_fileName, NrFileCompres
  *     ZIP PART    *
  * *****************/
 
-int NrFileCompressor::compressZipFile(const QString &filename)
+int NrFileCompressor::compressZipFile(const QString &filename, int level)
 {
     std::cout << "Compressing (ZIP) file " << filename.toStdString() << std::endl;
     const char *s_pComment = "Zipped with NrFileCompressor!";
@@ -89,7 +89,7 @@ int NrFileCompressor::compressZipFile(const QString &filename)
     //add file to the archive with the same internal (the one that will be unzipped it) as the original
     res = mz_zip_writer_add_file(&zip_archive, filename.toLatin1().constData(),
                                   filename.toLatin1().constData(),
-                                  s_pComment, (quint16)strlen(s_pComment), MZ_DEFAULT_COMPRESSION);
+                                  s_pComment, (quint16)strlen(s_pComment), level);
     if (!res)
     {
         std::cerr << "Error while adding a zip file to zip archive: " << mz_zip_get_error_string(mz_zip_get_last_error(&zip_archive)) << std::endl;
@@ -198,10 +198,10 @@ int NrFileCompressor::writeGzipFooter(QFile *pFile, quint32 i_crc32, quint32 i_s
     return 0;
 }
 
-int NrFileCompressor::compressGzipFile(const QString &filename)
+int NrFileCompressor::compressGzipFile(const QString &filename, int level)
 {
     qDebug() << "Compressing (GZIP) file " << filename;
-    int level = Z_BEST_COMPRESSION;
+    //int level = Z_BEST_COMPRESSION;
     z_stream stream;
 
     const qint64 BUF_SIZE = (1024 * 1024);
