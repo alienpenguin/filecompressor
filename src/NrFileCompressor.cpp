@@ -111,6 +111,68 @@ int NrFileCompressor::compressZipFile(const QString &filename, int level)
     return 0;
 }
 
+/*!
+ * \brief NrFileCompressor::uncompressZipFile method to uncompress a zip archive file
+ * \param filename the full path of the zip archive file to be uncompresses
+ * \param destDir the destination directory where extracted files will be stored
+ * \return 0 if successful, a negative error code otherwise
+ * \note Currently the method skips directories and doesn't preserve files relative path.
+ *       Furthermore, files in destDir are overwritten from extracted files having the same name.
+ */
+int NrFileCompressor::uncompressZipFile(const QString &filename, const QString &destDir)
+{
+    std::cout << "Uncompressing (ZIP) file " << filename.toStdString() << std::endl;
+
+    mz_zip_archive zip_archive;
+    memset(&zip_archive, 0, sizeof(zip_archive));
+
+    // init for read
+    bool res = mz_zip_reader_init_file(&zip_archive, filename.toLatin1().constData(), 0);
+    if (!res)
+    {
+        std::cerr << "" << mz_zip_get_error_string(mz_zip_get_last_error(&zip_archive)) << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    int count = (int)mz_zip_reader_get_num_files(&zip_archive);
+    if (count == 0)
+    {
+        mz_zip_reader_end(&zip_archive);
+        return 0;
+    }
+
+    // extract the files
+    for (int i = 0; i < count; ++i)
+    {
+        mz_zip_archive_file_stat file_stat;
+        if (!mz_zip_reader_file_stat(&zip_archive, i, &file_stat))
+        {
+            continue;
+        }
+
+        if (mz_zip_reader_is_file_a_directory(&zip_archive, i))
+        {
+            // skip directories
+            continue;
+        }
+
+        QString destfn = QFileInfo(QString(file_stat.m_filename)).fileName();
+        QString destfilename = QString("%1/%2").arg(!destDir.isEmpty() ? destDir : ".", destfn);
+        
+        res = mz_zip_reader_extract_to_file(&zip_archive, i, destfilename.toLatin1().constData(), 0);
+        if (!res)
+        {
+            std::cerr << "Error while extracting file from zip archive: " << mz_zip_get_error_string(mz_zip_get_last_error(&zip_archive)) << std::endl;
+            return EXIT_FAILURE;
+        }
+    }
+
+    // close the archive
+    mz_zip_reader_end(&zip_archive);
+
+    return 0;
+}
+
 
 /*********************
  *     gZIP PART     *

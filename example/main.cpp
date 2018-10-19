@@ -3,8 +3,8 @@
 
 #include <NrFileCompressor.h>
 
-#define COMPRESS_GZIP 1
-//#define COMPRESS_ZIP 1
+//#define COMPRESS_GZIP 1
+#define COMPRESS_ZIP 1
 
 int main(int argc, char *argv[])
 {
@@ -17,8 +17,11 @@ int main(int argc, char *argv[])
 #endif
 
 #ifdef COMPRESS_ZIP
-    int zres = fc.compressZipFile("random.txt");
-    if (zres == 0) qDebug() << "done";
+    int zres = fc.compressZipFile("random.txt", 6);
+    if (zres == 0) qDebug() << "compress done";
+
+    zres = fc.uncompressZipFile("random.txt.zip", ".");
+    if (zres == 0) qDebug() << "uncompress done";
 #endif
 
     return 0; //a.exec();
