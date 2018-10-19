@@ -10,6 +10,20 @@
 #include <QString>
 class QFile;
 
+
+#ifdef USE_NRFILECOMPRESSOR_NAMESPACE
+#define NRFILECOMPRESSOR_NAMESPACE NRFileCompressorV0_0
+#define BEGIN_NRFILECOMPRESSOR_NAMESPACE namespace NRFILECOMPRESSOR_NAMESPACE {
+#define END_NRFILECOMPRESSOR_NAMESPACE }
+#else
+#define NRFILECOMPRESSOR_NAMESPACE
+#define BEGIN_NRFILECOMPRESSOR_NAMESPACE
+#define END_NRFILECOMPRESSOR_NAMESPACE
+#endif
+
+
+BEGIN_NRFILECOMPRESSOR_NAMESPACE
+
 class NrFileCompressor
 {
 
@@ -40,5 +54,7 @@ public:
     static QString getCompressedFilename(const QString &filename, NrFileCompressor::compressedFileFormatEnum algo);
 
 };
+
+END_NRFILECOMPRESSOR_NAMESPACE
 
 #endif // NRFILECOMPRESSOR_H

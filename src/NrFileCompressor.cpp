@@ -28,6 +28,10 @@
 #define GZIP_EXT ".gz"
 #define ZIP_EXT ".zip"
 
+
+BEGIN_NRFILECOMPRESSOR_NAMESPACE
+
+
 NrFileCompressor::NrFileCompressor()
 {
     /* empty ctor */
@@ -311,4 +315,7 @@ int NrFileCompressor::compressGzipFile(const QString &filename, int level)
 
     return Z_OK;
 }
+
+
+END_NRFILECOMPRESSOR_NAMESPACE
 
