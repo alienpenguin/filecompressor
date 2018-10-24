@@ -296,7 +296,7 @@ int NrFileCompressor::compressGzipFile(const QString &filename, int level)
 
     //write the GZip file header
     QFileInfo finfo(fin);
-    writeGzipHeader(&fout, static_cast<quint32>(finfo.lastModified().toSecsSinceEpoch()));
+    writeGzipHeader(&fout, static_cast<quint32>(finfo.lastModified().toMSecsSinceEpoch()/1000));
 
     // Compression.
     qint64 finSize = fin.size();
