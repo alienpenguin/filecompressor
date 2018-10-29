@@ -55,6 +55,12 @@ int NrFileCompressor::fileCompress(QString const& i_fileName, NrFileCompressor::
 }
 
 
+/*!
+ * \brief NrFileCompressor::getCompressedFilename
+ * \param i_fileName the name of the file to compress
+ * \param i_algo the algorithm that should be used to compress
+ * \return the filename with the correct extension denoting the compression
+ */
 QString
 NrFileCompressor::getCompressedFilename(const QString &i_fileName, NrFileCompressor::compressedFileFormatEnum i_algo)
 {
@@ -69,6 +75,12 @@ NrFileCompressor::getCompressedFilename(const QString &i_fileName, NrFileCompres
  *     ZIP PART    *
  * *****************/
 
+/*!
+ * \brief NrFileCompressor::compressZipFile
+ * \param filename the file to be compressed
+ * \param level the level of compression to be used while compressing the ZIP file (0=storing, 6=default, 9=maximum)
+ * \return a integer return code, 0 meening the process was successfull
+ */
 int NrFileCompressor::compressZipFile(const QString &filename, int level)
 {
     std::cout << "Compressing (ZIP) file " << filename.toStdString() << std::endl;
@@ -134,7 +146,7 @@ int NrFileCompressor::uncompressZipFile(const QString &filename, const QString &
         return EXIT_FAILURE;
     }
 
-    int count = (int)mz_zip_reader_get_num_files(&zip_archive);
+    uint count = mz_zip_reader_get_num_files(&zip_archive);
     if (count == 0)
     {
         mz_zip_reader_end(&zip_archive);
@@ -142,7 +154,7 @@ int NrFileCompressor::uncompressZipFile(const QString &filename, const QString &
     }
 
     // extract the files
-    for (int i = 0; i < count; ++i)
+    for (uint i = 0; i < count; ++i)
     {
         mz_zip_archive_file_stat file_stat;
         if (!mz_zip_reader_file_stat(&zip_archive, i, &file_stat))
