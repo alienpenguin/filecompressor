@@ -43,17 +43,23 @@ NrFileCompressor::NrFileCompressor()
  * \param i_fileName the full path of the file to be compresses
  * \param i_algo the type of compression to be used, either GZIP or ZIP
  * \param i_level the compression level (0=none(faster) .. 9=max (slower))
- * \return 0 if successful, a negative error code otherwise
+ * \param o_errorCode an integer representing the actual error, 0 meaning OK/No error
+ * \return true if successful, false on error
  */
-int NrFileCompressor::fileCompress(QString const& i_fileName, NrFileCompressor::compressedFileFormatEnum i_algo, int i_lev)
+bool NrFileCompressor::fileCompress(QString const& i_fileName,
+                                    NrFileCompressor::compressedFileFormatEnum i_algo,
+                                    int i_lev,
+                                    int& o_errorCode)
 {
-    if (i_algo == NrFileCompressor::GZIP_ARCHIVE) {
-        return compressGzipFile(i_fileName, i_lev);
-    } else {
-        return compressZipFile(i_fileName, i_lev);
-    }
-}
+    bool res = false;
 
+    if (i_algo == NrFileCompressor::GZIP_ARCHIVE) {
+        res = compressGzipFile(i_fileName, i_lev, o_errorCode);
+    } else {
+        res = compressZipFile(i_fileName, i_lev, o_errorCode);
+    }
+    return res;
+}
 
 /*!
  * \brief NrFileCompressor::getCompressedFilename
@@ -79,10 +85,12 @@ NrFileCompressor::getCompressedFilename(const QString &i_fileName, NrFileCompres
  * \brief NrFileCompressor::compressZipFile
  * \param filename the file to be compressed
  * \param level the level of compression to be used while compressing the ZIP file (0=storing, 6=default, 9=maximum)
- * \return a integer return code, 0 meening the process was successfull
+ * \param o_errorCode an integer representing the actual error, 0 meaning OK/No error
+ * \return true on success, false on errora integer return code, 0 meening the process was successfull
  */
-int NrFileCompressor::compressZipFile(const QString &filename, int level)
+bool NrFileCompressor::compressZipFile(const QString &filename, int level, int& o_errorCode)
 {
+    o_errorCode = EXIT_FAILURE;
     std::cout << "Compressing (ZIP) file " << filename.toStdString() << std::endl;
     const char *s_pComment = "Zipped with NrFileCompressor!";
 
@@ -99,7 +107,8 @@ int NrFileCompressor::compressZipFile(const QString &filename, int level)
     if (!res)
     {
         std::cerr << "" << mz_zip_get_error_string(mz_zip_get_last_error(&zip_archive)) << std::endl;
-        return EXIT_FAILURE;
+        o_errorCode = EXIT_FAILURE;
+        return false;
     }
 
     //add file to the archive with the same internal (the one that will be unzipped it) as the original
@@ -109,30 +118,35 @@ int NrFileCompressor::compressZipFile(const QString &filename, int level)
     if (!res)
     {
         std::cerr << "Error while adding a zip file to zip archive: " << mz_zip_get_error_string(mz_zip_get_last_error(&zip_archive)) << std::endl;
-        return EXIT_FAILURE;
+        o_errorCode = EXIT_FAILURE;
+        return false;
     }
 
     res = mz_zip_writer_finalize_archive(&zip_archive);
     if (!res)
     {
         std::cerr << "Error while finalizing zip archive: " << mz_zip_get_error_string(mz_zip_get_last_error(&zip_archive)) << std::endl;
-        return EXIT_FAILURE;
+        o_errorCode = EXIT_FAILURE;
+        return false;
     }
 
-
-    return 0;
+    o_errorCode = EXIT_SUCCESS;
+    return true;
 }
 
 /*!
  * \brief NrFileCompressor::uncompressZipFile method to uncompress a zip archive file
  * \param filename the full path of the zip archive file to be uncompresses
  * \param destDir the destination directory where extracted files will be stored
- * \return 0 if successful, a negative error code otherwise
+ * \param o_errorCode an integer representing the actual error, 0 meaning OK/No error
+ * \return true on success, false on errora integer return code, 0 meening the process was successfull
+ *
  * \note Currently the method skips directories and doesn't preserve files relative path.
  *       Furthermore, files in destDir are overwritten from extracted files having the same name.
  */
-int NrFileCompressor::uncompressZipFile(const QString &filename, const QString &destDir)
+bool NrFileCompressor::uncompressZipFile(const QString &filename, const QString &destDir, int& o_errorCode)
 {
+    o_errorCode = EXIT_FAILURE;
     std::cout << "Uncompressing (ZIP) file " << filename.toStdString() << std::endl;
 
     mz_zip_archive zip_archive;
@@ -143,14 +157,16 @@ int NrFileCompressor::uncompressZipFile(const QString &filename, const QString &
     if (!res)
     {
         std::cerr << "" << mz_zip_get_error_string(mz_zip_get_last_error(&zip_archive)) << std::endl;
-        return EXIT_FAILURE;
+        o_errorCode = EXIT_FAILURE;
+        return false;
     }
 
     uint count = mz_zip_reader_get_num_files(&zip_archive);
     if (count == 0)
     {
         mz_zip_reader_end(&zip_archive);
-        return 0;
+        o_errorCode = EXIT_SUCCESS;
+        return true;
     }
 
     // extract the files
@@ -175,14 +191,16 @@ int NrFileCompressor::uncompressZipFile(const QString &filename, const QString &
         if (!res)
         {
             std::cerr << "Error while extracting file from zip archive: " << mz_zip_get_error_string(mz_zip_get_last_error(&zip_archive)) << std::endl;
-            return EXIT_FAILURE;
+            o_errorCode = EXIT_FAILURE;
+            return false;
         }
     }
 
     // close the archive
     mz_zip_reader_end(&zip_archive);
 
-    return 0;
+    o_errorCode = EXIT_SUCCESS;
+    return true;
 }
 
 
@@ -276,8 +294,9 @@ int NrFileCompressor::writeGzipFooter(QFile *pFile, quint32 i_crc32, quint32 i_s
     return 0;
 }
 
-int NrFileCompressor::compressGzipFile(const QString &filename, int level)
+bool NrFileCompressor::compressGzipFile(const QString &filename, int level, int& o_errorCode)
 {
+    o_errorCode = EXIT_FAILURE;
     qDebug() << "Compressing (GZIP) file " << filename;
     //int level = Z_BEST_COMPRESSION;
     z_stream stream;
@@ -303,7 +322,8 @@ int NrFileCompressor::compressGzipFile(const QString &filename, int level)
     if(!b) {
         fin.close();
         fout.close();
-        return NrFileCompressor::E_FILE_NOT_OPEN;
+        o_errorCode = NrFileCompressor::E_FILE_NOT_OPEN;
+        return false;
     }
 
     //write the GZip file header
@@ -318,7 +338,8 @@ int NrFileCompressor::compressGzipFile(const QString &filename, int level)
     if (deflateInit2(&stream, level, MZ_DEFLATED, -MZ_DEFAULT_WINDOW_BITS, 9, MZ_DEFAULT_STRATEGY) != Z_OK)
     {
         std::cerr << "deflateInit2() failed!" << std::endl;
-        return NrFileCompressor::E_MINIZ_ERROR;
+        o_errorCode = NrFileCompressor::E_MINIZ_ERROR;
+        return false;
     }
 
     //init the crc for uncompressed data
@@ -336,7 +357,8 @@ int NrFileCompressor::compressGzipFile(const QString &filename, int level)
           if (fin.read((char*)s_inbuf, n) != n)
           {
             std::cerr << "Failed reading from input file!" << std::endl;
-            return NrFileCompressor::E_MINIZ_ERROR;
+            o_errorCode = NrFileCompressor::E_MINIZ_ERROR;
+            return false;
           }
 
           //update the crc
@@ -358,7 +380,8 @@ int NrFileCompressor::compressGzipFile(const QString &filename, int level)
           if (fout.write((char*)s_outbuf, n) != n)
           {
             std::cerr << "Failed writing to output file!" << std::endl;
-            return NrFileCompressor::E_MINIZ_ERROR;
+            o_errorCode = NrFileCompressor::E_MINIZ_ERROR;
+            return true;
           }
           stream.next_out = s_outbuf;
           stream.avail_out = BUF_SIZE;
@@ -369,14 +392,16 @@ int NrFileCompressor::compressGzipFile(const QString &filename, int level)
         else if (status != Z_OK)
         {
             std::cerr << "deflate() failed with status: " << status << std::endl;
-            return NrFileCompressor::E_MINIZ_ERROR;
+            o_errorCode = NrFileCompressor::E_MINIZ_ERROR;
+            return false;
         }
     }
 
     if (deflateEnd(&stream) != Z_OK)
     {
         std::cerr << "deflateEnd() failed!" << std::endl;
-        return NrFileCompressor::E_MINIZ_ERROR;
+        o_errorCode = NrFileCompressor::E_MINIZ_ERROR;
+        return false;
     }
 
     //This is a fast modulo to power-of-2 numbers
@@ -387,7 +412,8 @@ int NrFileCompressor::compressGzipFile(const QString &filename, int level)
     fin.close();
     fout.close();
 
-    return Z_OK;
+    o_errorCode = Z_OK;
+    return true;
 }
 
 
