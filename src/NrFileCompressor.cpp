@@ -55,6 +55,17 @@ int NrFileCompressor::fileCompress(QString const& i_fileName, NrFileCompressor::
 }
 
 
+
+QString calculateNameCompliantWithZipAlgoMiniZ(const QString &filename)
+{
+    QString s = filename;
+    s.replace("\\", "_");
+    s.replace("/", "_");
+    s.replace(":", "_");
+    return s;
+}
+
+
 /*!
  * \brief NrFileCompressor::getCompressedFilename
  * \param i_fileName the name of the file to compress
@@ -67,7 +78,7 @@ NrFileCompressor::getCompressedFilename(const QString &i_fileName, NrFileCompres
     if (i_algo == NrFileCompressor::GZIP_ARCHIVE) {
         return i_fileName + GZIP_EXT;
     } else {
-        return i_fileName + ZIP_EXT;
+        return calculateNameCompliantWithZipAlgoMiniZ(i_fileName) + ZIP_EXT;
     }
 }
 
@@ -79,14 +90,15 @@ NrFileCompressor::getCompressedFilename(const QString &i_fileName, NrFileCompres
  * \brief NrFileCompressor::compressZipFile
  * \param filename the file to be compressed
  * \param level the level of compression to be used while compressing the ZIP file (0=storing, 6=default, 9=maximum)
- * \return a integer return code, 0 meening the process was successfull
+ * \return a integer return code, 0 meaning the process was successfull
+ * \warning the filename \em cannot contain characters '\', '/' or ':' if it does they will be translated to "_"
  */
 int NrFileCompressor::compressZipFile(const QString &filename, int level)
 {
     std::cout << "Compressing (ZIP) file " << filename.toStdString() << std::endl;
     const char *s_pComment = "Zipped with NrFileCompressor!";
 
-    QString destfilename = filename + ZIP_EXT;
+    QString destfilename = getCompressedFilename(filename, NrFileCompressor::ZIP_ARCHIVE);
 
     mz_zip_archive zip_archive;
 
@@ -103,7 +115,7 @@ int NrFileCompressor::compressZipFile(const QString &filename, int level)
     }
 
     //add file to the archive with the same internal (the one that will be unzipped it) as the original
-    res = mz_zip_writer_add_file(&zip_archive, filename.toLatin1().constData(),
+    res = mz_zip_writer_add_file(&zip_archive, destfilename.toLatin1().constData(),
                                   filename.toLatin1().constData(),
                                   s_pComment, (quint16)strlen(s_pComment), level);
     if (!res)
